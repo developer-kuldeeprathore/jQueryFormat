@@ -1,0 +1,28 @@
+
+.content-wrapper .overlay, .content .overlay, .tab-pane .overlay, .overlay-wrapper .overlay, .modal-body .overlay, .overlay-wrapper .overlay {
+    z-index: 50;
+    background: rgba(255,255,255,0.7);
+    border-radius: 3px
+}
+
+    .content-wrapper > .overlay > .fa, .content .overlay > .fa, .overlay-wrapper .overlay > .fa, .tab-pane .overlay > .fa, .overlay-wrapper .overlay > .fa, .modal-body .overlay > .fa, .overlay-wrapper .overlay > .fa {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        margin-left: -15px;
+        margin-top: -15px;
+        color: #000;
+        font-size: 30px
+    }
+
+    .content .overlay.dark, .overlay-wrapper .overlay.dark, .tab-pane .overlay.dark, .overlay-wrapper .overlay.dark, .modal-body .overlay.dark, .overlay-wrapper .overlay.dark {
+        background: rgba(0,0,0,0.5)
+    }
+
+.content-wrapper > .overlay, .content > .overlay, .overlay-wrapper > .overlay, .content > .loading-img, .overlay-wrapper > .loading-img, .tab-pane > .overlay, .overlay-wrapper > .overlay, .content > .loading-img, .tab-pane > .loading-img, .modal-body > .overlay, .overlay-wrapper > .overlay, .content > .loading-img, .modal-body > .loading-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%
+}
