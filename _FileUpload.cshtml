@@ -1,0 +1,208 @@
+﻿@{
+    var ext = this.Model.FileTypeExtension;
+
+    string filetypes = string.Empty;
+    foreach (var item in ext)
+    {
+        if (item == @Enums.FileTypeExtension.Image.ToString())
+        {
+            filetypes = string.IsNullOrEmpty(filetypes) ? "image/x-png,image/jpeg" : filetypes + ",image/x-png,image/jpeg";
+        }
+
+        if (item == @Enums.FileTypeExtension.Doc.ToString())
+        {
+            filetypes = string.IsNullOrEmpty(filetypes) ? ".DOC,.DOCX" : filetypes + ",.DOC,.DOCX";
+        }
+
+        if (item == @Enums.FileTypeExtension.Pdf.ToString())
+        {
+            filetypes = string.IsNullOrEmpty(filetypes) ? ".PDF" : filetypes + ",.PDF";
+        }
+
+        if (item == @Enums.FileTypeExtension.Excel.ToString())
+        {
+            filetypes = string.IsNullOrEmpty(filetypes) ? ".xls,.xlsx" : filetypes + ",.xls,.xlsx";
+        }
+
+        if (item == @Enums.FileTypeExtension.Excelx.ToString())
+        {
+            filetypes = string.IsNullOrEmpty(filetypes) ? ".xlsx" : filetypes + ",.xlsx";
+        }
+
+        if (item == @Enums.FileTypeExtension.Text.ToString())
+        {
+            filetypes = string.IsNullOrEmpty(filetypes) ? ".txt" : filetypes + ",.txt";
+        }
+
+        if (item == @Enums.FileTypeExtension.All.ToString())
+        {
+            filetypes = "image/x-png,image/jpeg,.DOC,.DOCX,.PDF,.xls,.xlsx,.txt";
+        }
+    }
+
+}
+
+@if (this.Model.FileType == Enums.UploadFileType.Image.ToString())
+            {
+    <div class="uploady">
+        <img id="imgpr" class="img-circle btnUpload" style="width:150px;height:150px" src="@(Constants.Storage.Replace("~","")+Model.ImageValue)" onerror="this.onerror=null;this.src='@Constants.UserImage';ShowDeleteimg();console.clear();">
+        @this.Html.TextBox("uploadFile", "", new { @type = "file", @class = "display_none uploadFile", @style = "display:none", @accept = "image/x-png,image/jpeg" })
+        <span class="divMessage" style="display:none"></span>
+        @this.Html.Hidden("filePath", null, new { @Value = this.Model.ImageValue })
+        <i class="fa fa-trash" id="Deleteimg" style="display:none;cursor:pointer;"></i>
+    </div>
+}
+else
+{
+    string imagename = this.Model.ImageValue;
+
+    <div class="uploady text-center">
+        @this.Html.TextBox("uploadFile", "", new { @type = "file", @class = "display_none uploadFile", @style = "display:none", @accept = filetypes })
+        <div class="btnUpload"><i id="logoupload" class="btn btn-primary">Browse</i> Select File</div>
+        <span class="divMessage">@this.Model.ImageValue</span>
+        <span id="divMessage"></span>
+        @this.Html.Hidden("FileName", Convert.ChangeType(imagename, typeof(string)))
+    </div>
+}
+
+<script>
+    function ShowDeleteimg() {
+        var img = $("#imgpr").attr('src');
+        if (img) {
+
+            if (img.indexOf('@Constants.UserImage') == -1) {
+                $("#Deleteimg").show();
+            }
+            else {
+                $("#Deleteimg").hide();
+            }
+        }
+    }
+    function Deleteimgs() {
+        $("#imgpr").attr('src', '@Constants.UserImage');
+        $("#divMessage").html('@Constants.UserImage');
+        $("#filePath").val('@Constants.UserImage');
+        ShowDeleteimg();
+    }
+
+    $(document).ready(function () {
+        $("#Deleteimg").on('click', function () {
+            Deleteimgs();
+        });
+
+        $(".btnUpload").unbind("click");
+        $(".btnUpload").on('click', function () {
+
+            $(this).parent().find(".uploadFile").click();
+        });
+        $(".uploadFile").unbind("click");
+        $('.uploadFile').on('change', function () {
+            var fileSize = this.files[0].size / 1024 / 1024;
+            UploadFile(this.files, $(this));
+        });
+
+        ShowDeleteimg();
+    });
+    function UploadFile(TargetFile, ele) {
+
+        $(".btnsave").attr('disabled', 'disabled');
+
+        // create array to store the buffer chunks
+        var FileChunk = [];
+        // the file object itself that we will work with
+        var file = TargetFile[0];
+        // set up other initial vars
+        var MaxFileSizeMB = 0.15;// ~150kb
+        var BufferChunkSize = MaxFileSizeMB * (1024 * 1024);
+        //var ReadBuffer_Size = 1024;
+        var FileStreamPos = 0;
+        // set the initial chunk length
+        var EndPos = BufferChunkSize;
+        var Size = file.size;
+
+        var progress = { max: Math.ceil(Size / (1024 * 1024)), val: 0 }
+
+        // add to the FileChunk array until we get to the end of the file
+        while (FileStreamPos < Size) {
+            // "slice" the file from the starting position/offset, to  the required length
+            FileChunk.push(file.slice(FileStreamPos, EndPos));
+            FileStreamPos = EndPos; // jump by the amount read
+            EndPos = FileStreamPos + BufferChunkSize; // set next chunk length
+        }
+
+        // get total number of "files" we will be sending
+        var TotalParts = FileChunk.length;
+        var PartCount = 0;
+
+        //Change file Name
+        var d = new Date();
+        var n = d.getTime();
+        var FileExt = file.name.split('.').pop();
+        var nFileName = n + '_gst.' + FileExt;
+
+        var TotalPart = FileChunk.length;
+
+        // loop through, pulling the first item from the array each time and sending it
+        while (chunk = FileChunk.shift()) {
+
+            PartCount++;
+            // file name convention
+            var FilePartName = nFileName + ".part_" + PartCount + "." + TotalParts;
+
+            // send the file
+            UploadChunk(nFileName, chunk, FilePartName, progress, ele, TotalPart);
+        }
+    }
+
+    function UploadChunk(FileName, Chunk, FilePartName, progress, ele, TotalPart) {
+
+        var FD = new FormData();
+        FD.append('file', Chunk, FilePartName);
+        $.ajax({
+            type: "POST",
+            url: '/Upload/File/',
+            contentType: false,
+            processData: false,
+            data: FD,
+            success: function (result) {
+               if (result != null && result.success) {
+                    progress.val = progress.val + 1;
+                    var $progress = ele.parent().find("span");
+                    $progress.html("Uploaded " + ((Math.round((progress.val / TotalPart) * 100))) + "%");
+                    var uploadProgress = (Math.round((progress.val / TotalPart) * 100));
+                    if (uploadProgress == 100) {
+                        $progress.html("<span>Uploaded 100 %</span>");
+                        ele.parent().find("input[type=hidden]").val(FileName);
+
+                        resetButtons(FileName, ele);
+                    }
+               } else {
+
+                   fnShowMessage(result.data, "error");
+         
+                    resetButtons("", ele);
+                }
+            },
+            error: function (result, xhr) {
+                fnShowMessage(xhr, "error");
+             
+            },
+        });
+    }
+
+    function resetButtons(msg, ele) {
+        var imagePath = '@(Constants.Storage.Replace("~",""))';
+        ele.parent().find(".divMessage").text(msg);
+        ele.parent().find(".uploadFile").val("");
+        $(".btnsave").removeAttr('disabled');
+        $(".btnsave").removeClass("disable_btn loading_btn");
+
+        var Images = ele.parent().find(".img-circle");
+        if (Image) {
+            Images.attr('src', imagePath + msg);
+            ShowDeleteimg();
+        }
+    }
+</script>
+
+ 
